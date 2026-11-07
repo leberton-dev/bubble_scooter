@@ -6,6 +6,7 @@ from src.hud import HUD
 from src.projectile import Projectile
 from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, ROWS, ROWS_PER_ADD, WIDTH, HEIGHT
 from src.shooter import Shooter
+from src.sound import Sounds
 
 
 class Game:
@@ -14,6 +15,7 @@ class Game:
         self.clock: pygame.time.Clock = clock
         self.running: bool = True
         self.hud: HUD = HUD()
+        self.sounds: Sounds = Sounds()
         self.reset()
 
     def reset(self) -> None:
@@ -50,6 +52,7 @@ class Game:
                     self.reset()
                 elif self.projectile is None:
                     self.projectile = self.shooter.shoot(self.grid.colors_present())
+                    self.sounds.play("shoot")
 
     def update(self, dt: float) -> None:
         if self.state != "playing":
@@ -73,18 +76,22 @@ class Game:
             self.grid.remove(cluster)
             self.score += len(cluster) * 10
             self.score += self.grid.remove_floating() * 20
+            self.sounds.play("pop")
         else:
             self.misses_left -= 1
             if self.misses_left == 0:
                 for _ in range(ROWS_PER_ADD):
                     self.grid.add_row()
+                    self.sounds.play("row")
                 self.max_misses = max(1, self.max_misses - 1)
                 self.misses_left = self.max_misses
 
         if self.grid.is_empty():
             self.state = "won"
+            self.sounds.play("win")
         elif self.grid.reached_bottom():
             self.state = "lost"
+            self.sounds.play("lose")
         else:
             self.shooter.refresh_colors(self.grid.colors_present())
 
