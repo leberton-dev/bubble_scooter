@@ -4,7 +4,7 @@ import pygame
 from src.grid import Grid, create_test_grid, get_random_color
 from src.hud import HUD
 from src.projectile import Projectile
-from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, ROWS_PER_ADD, WIDTH, HEIGHT
+from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, ROWS, ROWS_PER_ADD, WIDTH, HEIGHT
 from src.shooter import Shooter
 
 
@@ -94,6 +94,10 @@ class Game:
         self.shooter.draw(self.screen)
         if self.projectile is not None:
             self.projectile.draw(self.screen)
+
+        lose_y = self.grid.grid_to_pixel(ROWS -1, 0).y
+        _ = pygame.draw.line(self.screen, (200, 50, 50), (0, lose_y), (WIDTH, lose_y), 2)
+
         for i in range(self.misses_left):
             pos = (30 + i * 25, self.shooter.pos.y)
             _ = pygame.draw.circle(
