@@ -6,7 +6,7 @@ SOUND_DIR = Path(__file__).parent.parent / "assets" / "sounds"
 class Sounds:
     def __init__(self) -> None:
         self.sounds: dict[str, pygame.mixer.Sound] = {}
-        if pygame.mixer.get_init() is None:
+        if not pygame.mixer.get_init():
             return
 
         for name in ("shoot", "pop", "row", "win", "loose"):
