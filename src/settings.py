@@ -14,3 +14,5 @@ PROJECTILE_SPEED: int = 800
 
 MISSES_PER_ROW: int = 5
 ROWS_PER_ADD: int = 2
+
+POP_DELAY: float = 0.1

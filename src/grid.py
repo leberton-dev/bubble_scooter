@@ -1,6 +1,7 @@
 from collections import deque
 from dataclasses import dataclass
 from math import sqrt
+import queue
 import random
 
 import pygame
@@ -66,7 +67,8 @@ class Grid:
         if self.board[row][col] is not None:
             empty = [
                 (r, c)
-                for r, c in self.get_neighbors(row, col)
+                for r in range(ROWS)
+                for c in range(COLS)
                 if self.board[r][c] is None
             ]
             row, col = min(
@@ -81,50 +83,53 @@ class Grid:
         )
         return (row, col)
 
-    def find_cluster(self, row: int, col: int) -> set[tuple[int, int]]:
+    def find_cluster(self, row: int, col: int) -> list[tuple[int, int]]:
         start = self.board[row][col]
         if start is None:
-            return set()
+            return []
 
-        cluster: set[tuple[int, int]] = {(row, col)}
+        visited: set[tuple[int, int]] = {(row, col)}
+        order: list[tuple[int, int]] = [(row, col)]
         queue = deque([(row, col)])
         while queue:
             r, c = queue.popleft()
             for nr, nc in self.get_neighbors(r, c):
                 b = self.board[nr][nc]
-                if (nr, nc) not in cluster and b is not None and b.color == start.color:
-                    cluster.add((nr, nc))
+                if (nr, nc) not in visited and b is not None and b.color == start.color:
+                    visited.add((nr, nc))
+                    order.append((nr, nc))
                     queue.append((nr, nc))
 
-        return cluster
+        return order
 
     def remove(self, cells: set[tuple[int, int]]) -> None:
         for r, c in cells:
             self.board[r][c] = None
 
-    def remove_floating(self) -> int:
+    def find_floating(self, ignore: set[tuple[int, int]]) -> list[tuple[int, int]]:
+        def filled(r: int, c: int) -> bool:
+            return self.board[r][c] is not None and (r, c) not in ignore
+
         attached: set[tuple[int, int]] = set()
         queue = deque()
         for c in range(COLS):
-            if self.board[0][c] is not None:
+            if filled(0, c):
                 attached.add((0, c))
                 queue.append((0, c))
 
         while queue:
             r, c = queue.popleft()
             for nr, nc in self.get_neighbors(r, c):
-                if (nr, nc) not in attached and self.board[nr][nc] is not None:
+                if (nr, nc) not in attached and filled(nr, nc):
                     attached.add((nr, nc))
                     queue.append((nr, nc))
 
-        floating = {
+        return [
             (r, c)
             for r in range(ROWS)
             for c in range(COLS)
-            if self.board[r][c] is not None and (r, c) not in attached
-        }
-        self.remove(floating)
-        return len(floating)
+            if filled(r, c) and (r, c) not in attached
+        ]
 
     def colors_present(self) -> list[tuple[int, int, int]]:
         return list({b.color for line in self.board for b in line if b is not None})
@@ -158,7 +163,6 @@ class Grid:
 
     def reached_bottom(self) -> bool:
         return any(b is not None for b in self.board[-1])
-
 
 
 def get_random_color(colors: list[tuple[int, int, int]]) -> tuple[int, int, int]:

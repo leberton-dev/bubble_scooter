@@ -4,7 +4,7 @@ import pygame
 from src.grid import Grid, create_test_grid, get_random_color
 from src.hud import HUD
 from src.projectile import Projectile
-from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, ROWS, ROWS_PER_ADD, WIDTH, HEIGHT
+from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, POP_DELAY, ROWS, ROWS_PER_ADD, WIDTH, HEIGHT
 from src.shooter import Shooter
 from src.sound import Sounds
 
@@ -32,6 +32,8 @@ class Game:
         self.misses_left: int = self.max_misses
         self.score: int = 0
         self.state: str = "playing"
+        self.pop_queue: list[tuple[int, int]] = []
+        self.pop_timer: float = 0
 
     def run(self) -> None:
         dt = 0
@@ -50,7 +52,7 @@ class Game:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.state != "playing":
                     self.reset()
-                elif self.projectile is None:
+                elif self.projectile is None and not self.pop_queue:
                     self.projectile = self.shooter.shoot(self.grid.colors_present())
                     self.sounds.play("shoot")
 
@@ -59,6 +61,11 @@ class Game:
             return
 
         self.shooter.aim(pygame.mouse.get_pos())
+
+        if self.pop_queue:
+            self.update_pops(dt)
+            return
+
         if self.projectile is None:
             return
 
@@ -70,22 +77,38 @@ class Game:
         self.projectile = None
         self.resolve_shot(row, col)
 
+    def update_pops(self, dt: float) -> None:
+        self.pop_timer -= dt
+        while self.pop_timer <= 0 and self.pop_queue:
+            r, c = self.pop_queue.pop(0)
+            b = self.grid.board[r][c]
+            if b is not None:
+                self.grid.board[r][c] = None
+                self.sounds.play("pop")
+            self.pop_timer += POP_DELAY
+
+        if not self.pop_queue:
+            self.end_turn()
+
     def resolve_shot(self, row: int, col: int) -> None:
         cluster = self.grid.find_cluster(row, col)
         if len(cluster) >= 3:
-            self.grid.remove(cluster)
-            self.score += len(cluster) * 10
-            self.score += self.grid.remove_floating() * 20
-            self.sounds.play("pop")
-        else:
-            self.misses_left -= 1
-            if self.misses_left == 0:
-                for _ in range(ROWS_PER_ADD):
-                    self.grid.add_row()
-                    self.sounds.play("row")
-                self.max_misses = max(1, self.max_misses - 1)
-                self.misses_left = self.max_misses
+            floating = self.grid.find_floating(set(cluster))
+            self.score += len(cluster) * 10 + len(floating) * 20
+            self.pop_queue = cluster + floating
+            self.pop_timer = 0
+            return
 
+        self.misses_left -= 1
+        if self.misses_left == 0:
+            for _ in range(ROWS_PER_ADD):
+                self.grid.add_row()
+            self.sounds.play("row")
+            self.max_misses = max(1, self.max_misses - 1)
+            self.misses_left = self.max_misses
+        self.end_turn()
+
+    def end_turn(self) -> None:
         if self.grid.is_empty():
             self.state = "won"
             self.sounds.play("win")
