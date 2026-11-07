@@ -12,7 +12,7 @@ BG_COLOR: tuple[int, int, int] = (20, 20, 30)
 
 PROJECTILE_SPEED: int = 800
 
-MISSES_PER_ROW: int = 5
+MISSES_PER_ROW: int = 6
 ROWS_PER_ADD: int = 2
 
 POP_DELAY: float = 0.1
