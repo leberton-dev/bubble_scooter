@@ -2,10 +2,10 @@ WIDTH: int = 640
 HEIGHT: int = 800
 FPS: int = 60
 
-BUBBLE_RADIUS: int = 20
-ROWS: int = 16
+BUBBLE_RADIUS: int = 18
+ROWS: int = 18
 COLS: int = (WIDTH - BUBBLE_RADIUS) // (2 * BUBBLE_RADIUS)
-START_ROWS: int = 6
+START_ROWS: int = 9
 COLORS: list[tuple[int, int, int]] = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255)]
 
 BG_COLOR: tuple[int, int, int] = (20, 20, 30)
