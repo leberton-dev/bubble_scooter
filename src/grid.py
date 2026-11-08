@@ -134,7 +134,10 @@ class Grid:
     def colors_present(self) -> list[tuple[int, int, int]]:
         return list({b.color for line in self.board for b in line if b is not None})
 
-    def add_row(self) -> None:
+    def add_row(self) -> bool:
+        if self.reached_bottom():
+            return True
+
         colors = self.colors_present() or COLORS
 
         self.first_row_shifted = not self.first_row_shifted
@@ -151,6 +154,8 @@ class Grid:
                 if b is not None:
                     b.row = r
                     b.pos = self.grid_to_pixel(r, b.col)
+
+        return self.reached_bottom()
 
     def draw(self, surface: pygame.Surface) -> None:
         for line in self.board:

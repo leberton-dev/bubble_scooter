@@ -102,7 +102,8 @@ class Game:
         self.misses_left -= 1
         if self.misses_left == 0:
             for _ in range(ROWS_PER_ADD):
-                self.grid.add_row()
+                if self.grid.add_row():
+                    break
             self.sounds.play("row")
             self.max_misses -= 1
             if self.max_misses == 1:
