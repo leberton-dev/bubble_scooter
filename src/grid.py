@@ -1,7 +1,6 @@
 from collections import deque
 from dataclasses import dataclass
 from math import sqrt
-import queue
 import random
 
 import pygame
@@ -52,12 +51,9 @@ class Grid:
         return [(r, c) for r, c in candidates if 0 <= r < ROWS and 0 <= c < COLS]
 
     def collides(self, projectile: Projectile) -> bool:
-        for line in self.board:
-            for b in line:
-                if (
-                    b is not None
-                    and b.pos.distance_to(projectile.pos) < 2 * BUBBLE_RADIUS
-                ):
+        for r, line in enumerate(self.board):
+            for c, b in enumerate(line):
+                if (b is not None and self.grid_to_pixel(r, c).distance_to(projectile.pos) < 2 * BUBBLE_RADIUS):
                     return True
         return False
 
@@ -78,9 +74,7 @@ class Grid:
                 ),
             )
 
-        self.board[row][col] = Bubble(
-            projectile.color, row, col, self.grid_to_pixel(row, col), BUBBLE_RADIUS
-        )
+        self.board[row][col] = Bubble(projectile.color)
         return (row, col)
 
     def find_cluster(self, row: int, col: int) -> list[tuple[int, int]]:
@@ -139,24 +133,13 @@ class Grid:
 
         self.first_row_shifted = not self.first_row_shifted
         _ = self.board.pop()
-        self.board.insert(0, [None] * COLS)
-
-        for c in range(COLS):
-            self.board[0][c] = Bubble(
-                get_random_color(colors), 0, c, pygame.Vector2(), BUBBLE_RADIUS
-            )
-
-        for r, line in enumerate(self.board):
-            for b in line:
-                if b is not None:
-                    b.row = r
-                    b.pos = self.grid_to_pixel(r, b.col)
+        self.board.insert(0, [Bubble(get_random_color(colors)) for _ in range(COLS)])
 
     def draw(self, surface: pygame.Surface) -> None:
-        for line in self.board:
-            for b in line:
+        for r, line in enumerate(self.board):
+            for c, b in enumerate(line):
                 if b is not None:
-                    b.draw(surface)
+                    b.draw(surface, self.grid_to_pixel(r, c))
 
     def is_empty(self) -> bool:
         return all(b is None for line in self.board for b in line)
@@ -177,12 +160,6 @@ def create_test_grid() -> Grid:
     grid = Grid(board, True)
     for row in range(START_ROWS):
         for col in range(COLS):
-            b = Bubble(
-                get_random_color(COLORS),
-                row,
-                col,
-                grid.grid_to_pixel(row, col),
-                BUBBLE_RADIUS,
-            )
+            b = Bubble(get_random_color(COLORS))
             grid.board[row][col] = b
     return grid
