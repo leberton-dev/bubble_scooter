@@ -104,7 +104,9 @@ class Game:
             for _ in range(ROWS_PER_ADD):
                 self.grid.add_row()
             self.sounds.play("row")
-            self.max_misses = max(1, self.max_misses - 1)
+            self.max_misses -= 1
+            if self.max_misses == 1:
+                self.max_misses = MISSES_PER_ROW
             self.misses_left = self.max_misses
         self.end_turn()
 
