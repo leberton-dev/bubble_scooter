@@ -9,7 +9,7 @@ class Sounds:
         if not pygame.mixer.get_init():
             return
 
-        for name in ("shoot", "pop", "row", "win", "loose"):
+        for name in ("shoot", "pop", "row", "win", "lose"):
             path = SOUND_DIR / f"{name}.wav"
             if path.exists():
                 self.sounds[name] = pygame.mixer.Sound(path)

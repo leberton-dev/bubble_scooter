@@ -116,7 +116,7 @@ class Game:
             self.sounds.play("win")
         elif self.grid.reached_bottom():
             self.state = "lost"
-            self.sounds.play("loose")
+            self.sounds.play("lose")
         else:
             self.shooter.refresh_colors(self.grid.colors_present())
 
