@@ -2,6 +2,7 @@ from collections import deque
 from math import pi
 import pygame
 
+from src.state import GameState
 from src.grid import Cell, Grid, get_random_color
 from src.hud import HUD
 from src.projectile import Projectile
@@ -32,7 +33,7 @@ class Game:
         self.max_misses: int = MISSES_PER_ROW
         self.misses_left: int = self.max_misses
         self.score: int = 0
-        self.state: str = "playing"
+        self.state: GameState = GameState.playing
         self.pop_queue: deque[Cell] = deque()
         self.pop_timer: float = 0
 
@@ -51,14 +52,14 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.state != "playing":
+                if self.state != GameState.playing:
                     self.reset()
                 elif self.projectile is None and not self.pop_queue:
                     self.projectile = self.shooter.shoot(self.grid.colors_present())
                     self.sounds.play("shoot")
 
     def update(self, dt: float) -> None:
-        if self.state != "playing":
+        if self.state != GameState.playing:
             return
 
         self.shooter.aim(pygame.mouse.get_pos())
@@ -114,10 +115,10 @@ class Game:
 
     def end_turn(self) -> None:
         if self.grid.is_empty():
-            self.state = "won"
+            self.state = GameState.won
             self.sounds.play("win")
         elif self.grid.reached_bottom():
-            self.state = "lost"
+            self.state = GameState.lost
             self.sounds.play("lose")
         else:
             self.shooter.refresh_colors(self.grid.colors_present())
