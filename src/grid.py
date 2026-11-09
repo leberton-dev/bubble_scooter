@@ -1,5 +1,5 @@
 from collections import deque
-from collections.abc import Iterator
+from collections.abc import Iterator, Callable
 from dataclasses import dataclass
 from math import sqrt
 import random
@@ -41,7 +41,7 @@ class Grid:
         col = min(COLS - 1, max(0, col))
         return (row, col)
 
-    def get_neighbors(self, row: int, col: int) -> list[tuple[int, int]]:
+    def get_neighbors(self, row: int, col: int) -> list[Cell]:
         if self.is_shifted(row):
             diag = (col, col + 1)
         else:
@@ -55,7 +55,7 @@ class Grid:
             (row + 1, diag[0]),
             (row + 1, diag[1]),
         ]
-        return [(r, c) for r, c in candidates if 0 <= r < ROWS and 0 <= c < COLS]
+        return [Cell(r, c) for r, c in candidates if 0 <= r < ROWS and 0 <= c < COLS]
 
     def collides(self, projectile: Projectile) -> bool:
         for cell, _ in self.bubbles():
@@ -75,48 +75,46 @@ class Grid:
         self.board[row][col] = Bubble(projectile.color)
         return Cell(row, col)
 
-    def find_cluster(self, row: int, col: int) -> list[tuple[int, int]]:
-        start = self.board[row][col]
-        if start is None:
+    def _flood_fill(self, start: list[Cell], condition: Callable[[Cell], bool]) -> list[Cell]:
+        visited = set(start)
+        visited_ordered = list(start)
+        queue = deque(start)
+        while queue:
+            cell = queue.popleft()
+            for c in self.get_neighbors(cell.row, cell.col):
+                if c not in visited and condition(c):
+                    visited.add(c)
+                    visited_ordered.append(c)
+                    queue.append(c)
+        return visited_ordered
+
+    def find_cluster(self, row: int, col: int) -> list[Cell]:
+        start_bubble = self.board[row][col]
+        if start_bubble is None:
             return []
 
-        visited: set[tuple[int, int]] = {(row, col)}
-        order: list[tuple[int, int]] = [(row, col)]
-        queue = deque([(row, col)])
-        while queue:
-            r, c = queue.popleft()
-            for nr, nc in self.get_neighbors(r, c):
-                b = self.board[nr][nc]
-                if (nr, nc) not in visited and b is not None and b.color == start.color:
-                    visited.add((nr, nc))
-                    order.append((nr, nc))
-                    queue.append((nr, nc))
+        def bubble_is_start_color(cell: Cell) -> bool:
+            b = self.bubble_at(cell)
+            return b is not None and b.color == start_bubble.color
 
-        return order
+        return self._flood_fill([Cell(row, col)], bubble_is_start_color)
+
+    def find_floating(self, ignore: set[Cell]) -> list[Cell]:
+        def filled(cell: Cell) -> bool:
+            return self.bubble_at(cell) is not None and cell not in ignore
+
+        start: list[Cell] = []
+        for c in range(COLS):
+            cell = Cell(0, c)
+            if filled(cell):
+                start.append(cell)
+
+        flood = set(self._flood_fill(start, filled))
+        return [cell for cell, _ in self.bubbles() if cell not in ignore and cell not in flood]
 
     def remove(self, cells: set[tuple[int, int]]) -> None:
         for r, c in cells:
             self.board[r][c] = None
-
-    def find_floating(self, ignore: set[tuple[int, int]]) -> list[tuple[int, int]]:
-        def filled(r: int, c: int) -> bool:
-            return self.board[r][c] is not None and (r, c) not in ignore
-
-        attached: set[tuple[int, int]] = set()
-        queue = deque()
-        for c in range(COLS):
-            if filled(0, c):
-                attached.add((0, c))
-                queue.append((0, c))
-
-        while queue:
-            r, c = queue.popleft()
-            for nr, nc in self.get_neighbors(r, c):
-                if (nr, nc) not in attached and filled(nr, nc):
-                    attached.add((nr, nc))
-                    queue.append((nr, nc))
-
-        return [cell for cell, _ in self.bubbles() if cell not in ignore and cell not in attached]
 
     def colors_present(self) -> list[tuple[int, int, int]]:
         return list({b.color for _, b in self.bubbles()})
