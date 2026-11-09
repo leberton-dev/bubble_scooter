@@ -1,6 +1,5 @@
 from collections import deque
 from collections.abc import Iterator, Callable
-from dataclasses import dataclass
 from math import sqrt
 import random
 from typing import NamedTuple
@@ -9,18 +8,32 @@ import pygame
 
 from src.bubble import Bubble
 from src.projectile import Projectile
-from src.settings import BUBBLE_RADIUS, COLORS, COLS, ROWS, START_ROWS
+from src.settings import BUBBLE_RADIUS, COLORS
 
 
 class Cell(NamedTuple):
     row: int
     col: int
 
+def get_random_color(colors: list[tuple[int, int, int]]) -> tuple[int, int, int]:
+    return random.choice(colors)
 
-@dataclass()
 class Grid:
-    board: list[list[Bubble | None]]
-    first_row_shifted: bool
+    def __init__(self, rows: int, cols: int) -> None:
+        self.rows: int = rows
+        self.cols: int = cols
+        self.board: list[list[Bubble | None]] = [[None] * cols for _ in range(rows)]
+        self.first_row_shifted: bool = True
+
+    @classmethod
+    def random(cls, start_rows: int, rows: int, cols: int, colors: list[tuple[int, int, int]]) -> "Grid":
+        if start_rows > rows:
+            raise ValueError("start_rows cannot be bigger than rows")
+        grid = cls(rows, cols)
+        for cell in grid.cells():
+            if cell.row < start_rows:
+                grid.place_cell(cell, get_random_color(colors))
+        return grid
 
     def is_shifted(self, row: int) -> bool:
         return (row % 2 == 1) != self.first_row_shifted
@@ -34,11 +47,11 @@ class Grid:
 
     def pixel_to_grid(self, x: float, y: float) -> tuple[int, int]:
         row = round((y - BUBBLE_RADIUS) / (BUBBLE_RADIUS * sqrt(3)))
-        row = min(ROWS - 1, max(0, row))
+        row = min(self.rows - 1, max(0, row))
         if self.is_shifted(row):
             x -= BUBBLE_RADIUS
         col = round((x - BUBBLE_RADIUS) / (2 * BUBBLE_RADIUS))
-        col = min(COLS - 1, max(0, col))
+        col = min(self.cols - 1, max(0, col))
         return (row, col)
 
     def get_neighbors(self, row: int, col: int) -> list[Cell]:
@@ -55,7 +68,7 @@ class Grid:
             (row + 1, diag[0]),
             (row + 1, diag[1]),
         ]
-        return [Cell(r, c) for r, c in candidates if 0 <= r < ROWS and 0 <= c < COLS]
+        return [Cell(r, c) for r, c in candidates if 0 <= r < self.rows and 0 <= c < self.cols]
 
     def collides(self, projectile: Projectile) -> bool:
         for cell, _ in self.bubbles():
@@ -113,7 +126,7 @@ class Grid:
             return self.bubble_at(cell) is not None and cell not in ignore
 
         start: list[Cell] = []
-        for c in range(COLS):
+        for c in range(self.cols):
             cell = Cell(0, c)
             if filled(cell):
                 start.append(cell)
@@ -129,7 +142,7 @@ class Grid:
 
         self.first_row_shifted = not self.first_row_shifted
         _ = self.board.pop()
-        self.board.insert(0, [Bubble(get_random_color(colors)) for _ in range(COLS)])
+        self.board.insert(0, [Bubble(get_random_color(colors)) for _ in range(self.cols)])
 
     def draw(self, surface: pygame.Surface) -> None:
         for cell, bubble in self.bubbles():
@@ -145,8 +158,8 @@ class Grid:
         return self.board[cell.row][cell.col]
 
     def cells(self) -> Iterator[Cell]:
-        for r in range(ROWS):
-            for c in range(COLS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 yield Cell(r, c)
 
     def bubbles(self) -> Iterator[tuple[Cell, Bubble]]:
@@ -159,20 +172,3 @@ class Grid:
         for cell in self.cells():
             if self.bubble_at(cell) is None:
                 yield cell
-
-
-def get_random_color(colors: list[tuple[int, int, int]]) -> tuple[int, int, int]:
-    return random.choice(colors)
-
-
-def create_test_grid() -> Grid:
-    board: list[list[Bubble | None]] = []
-    for _ in range(ROWS):
-        board.append([None] * COLS)
-
-    grid = Grid(board, True)
-    for cell in grid.cells():
-        if cell.row < START_ROWS:
-            grid.board[cell.row][cell.col] = Bubble(get_random_color(COLORS))
-
-    return grid

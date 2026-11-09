@@ -2,10 +2,10 @@ from collections import deque
 from math import pi
 import pygame
 
-from src.grid import Cell, Grid, create_test_grid, get_random_color
+from src.grid import Cell, Grid, get_random_color
 from src.hud import HUD
 from src.projectile import Projectile
-from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, POP_DELAY, ROWS, ROWS_PER_ADD, WIDTH, HEIGHT
+from src.settings import BUBBLE_RADIUS, COLORS, COLS, FPS, BG_COLOR, MISSES_PER_ROW, POP_DELAY, ROWS, ROWS_PER_ADD, START_ROWS, WIDTH, HEIGHT
 from src.shooter import Shooter
 from src.sound import Sounds
 
@@ -20,7 +20,7 @@ class Game:
         self.reset()
 
     def reset(self) -> None:
-        self.grid: Grid = create_test_grid()
+        self.grid: Grid = Grid.random(START_ROWS, ROWS, COLS, COLORS)
         colors = self.grid.colors_present()
         self.shooter: Shooter = Shooter(
             get_random_color(colors),
