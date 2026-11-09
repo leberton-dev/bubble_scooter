@@ -2,11 +2,27 @@ from collections import deque
 from math import pi
 import pygame
 
+from src.settings import (
+    BUBBLE_RADIUS,
+    COLORS,
+    COLS,
+    FPS,
+    BG_COLOR,
+    MIN_CLUSTER_SIZE,
+    MISSES_PER_ROW,
+    POINTS_PER_DROP,
+    POINTS_PER_POP,
+    POP_DELAY,
+    ROWS,
+    ROWS_PER_ADD,
+    START_ROWS,
+    WIDTH,
+    HEIGHT
+)
 from src.state import GameState
 from src.grid import Cell, Grid, get_random_color
 from src.hud import HUD
 from src.projectile import Projectile
-from src.settings import BUBBLE_RADIUS, COLORS, COLS, FPS, BG_COLOR, MISSES_PER_ROW, POP_DELAY, ROWS, ROWS_PER_ADD, START_ROWS, WIDTH, HEIGHT
 from src.shooter import Shooter
 from src.sound import Sounds
 
@@ -20,6 +36,10 @@ class Game:
         self.sounds: Sounds = Sounds()
         self.reset()
 
+    @property
+    def can_shoot(self) -> bool:
+        return self.projectile is None and not self.pop_queue
+
     def reset(self) -> None:
         self.grid: Grid = Grid.random(START_ROWS, ROWS, COLS, COLORS)
         colors = self.grid.colors_present()
@@ -30,8 +50,8 @@ class Game:
             pi / 2,
         )
         self.projectile: Projectile | None = None
-        self.max_misses: int = MISSES_PER_ROW
-        self.misses_left: int = self.max_misses
+        self.miss_allowance: int = MISSES_PER_ROW
+        self.misses_left: int = self.miss_allowance
         self.score: int = 0
         self.state: GameState = GameState.playing
         self.pop_queue: deque[Cell] = deque()
@@ -54,7 +74,7 @@ class Game:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.state != GameState.playing:
                     self.reset()
-                elif self.projectile is None and not self.pop_queue:
+                elif self.can_shoot:
                     self.projectile = self.shooter.shoot(self.grid.colors_present())
                     self.sounds.play("shoot")
 
@@ -91,27 +111,32 @@ class Game:
         if not self.pop_queue:
             self.end_turn()
 
-    def resolve_shot(self, cell: Cell) -> None:
-        cluster = self.grid.find_cluster(cell)
-        if len(cluster) >= 3:
-            floating = self.grid.find_floating(set(cluster))
-            self.score += len(cluster) * 10 + len(floating) * 20
-            self.pop_queue = deque(cluster + floating)
-            self.pop_timer = 0
-            return
+    def _on_match(self, cluster: list[Cell]) -> None:
+        floating = self.grid.find_floating(set(cluster))
+        self.score += len(cluster) * POINTS_PER_POP + len(floating) * POINTS_PER_DROP
+        self.pop_queue = deque(cluster + floating)
+        self.pop_timer = 0
 
+    def _shrink_miss_allowance(self) -> None:
+        self.miss_allowance -= 1
+        if self.miss_allowance == 1:
+            self.miss_allowance = MISSES_PER_ROW
+
+    def _on_miss(self) -> None:
         self.misses_left -= 1
         if self.misses_left == 0:
-            for _ in range(ROWS_PER_ADD):
-                self.grid.add_row()
-                if self.grid.reached_bottom():
-                    break
+            self.grid.add_rows(ROWS_PER_ADD)
             self.sounds.play("row")
-            self.max_misses -= 1
-            if self.max_misses == 1:
-                self.max_misses = MISSES_PER_ROW
-            self.misses_left = self.max_misses
+            self._shrink_miss_allowance()
+            self.misses_left = self.miss_allowance
         self.end_turn()
+
+    def resolve_shot(self, cell: Cell) -> None:
+        cluster = self.grid.find_cluster(cell)
+        if len(cluster) >= MIN_CLUSTER_SIZE:
+            self._on_match(cluster)
+        else:
+            self._on_miss()
 
     def end_turn(self) -> None:
         if self.grid.is_empty():

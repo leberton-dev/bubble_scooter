@@ -16,3 +16,7 @@ MISSES_PER_ROW: int = 6
 ROWS_PER_ADD: int = 2
 
 POP_DELAY: float = 0.1
+
+MIN_CLUSTER_SIZE: int = 3
+POINTS_PER_POP: int = 10
+POINTS_PER_DROP: int = 20

@@ -144,6 +144,12 @@ class Grid:
         _ = self.board.pop()
         self.board.insert(0, [Bubble(get_random_color(colors)) for _ in range(self.cols)])
 
+    def add_rows(self, n: int) -> None:
+        for _ in range(n):
+            self.add_row()
+            if self.reached_bottom():
+                break
+
     def draw(self, surface: pygame.Surface) -> None:
         for cell, bubble in self.bubbles():
             bubble.draw(surface, self.grid_to_pixel(cell.row, cell.col))
