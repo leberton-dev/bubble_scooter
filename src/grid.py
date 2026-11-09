@@ -1,13 +1,20 @@
 from collections import deque
+from collections.abc import Iterator
 from dataclasses import dataclass
 from math import sqrt
 import random
+from typing import NamedTuple
 
 import pygame
 
 from src.bubble import Bubble
 from src.projectile import Projectile
 from src.settings import BUBBLE_RADIUS, COLORS, COLS, ROWS, START_ROWS
+
+
+class Cell(NamedTuple):
+    row: int
+    col: int
 
 
 @dataclass()
@@ -51,31 +58,22 @@ class Grid:
         return [(r, c) for r, c in candidates if 0 <= r < ROWS and 0 <= c < COLS]
 
     def collides(self, projectile: Projectile) -> bool:
-        for r, line in enumerate(self.board):
-            for c, b in enumerate(line):
-                if (b is not None and self.grid_to_pixel(r, c).distance_to(projectile.pos) < 2 * BUBBLE_RADIUS):
-                    return True
+        for cell, _ in self.bubbles():
+            if self.grid_to_pixel(cell.row, cell.col).distance_to(projectile.pos) < 2 * BUBBLE_RADIUS:
+                return True
         return False
 
-    def snap(self, projectile: Projectile) -> tuple[int, int]:
+    def snap(self, projectile: Projectile) -> Cell:
         row, col = self.pixel_to_grid(projectile.pos.x, projectile.pos.y)
 
         if self.board[row][col] is not None:
-            empty = [
-                (r, c)
-                for r in range(ROWS)
-                for c in range(COLS)
-                if self.board[r][c] is None
-            ]
             row, col = min(
-                empty,
-                key=lambda rc: self.grid_to_pixel(rc[0], rc[1]).distance_to(
-                    projectile.pos
-                ),
+                self.empty_cells(),
+                key=lambda cell: self.grid_to_pixel(cell.row, cell.col).distance_to(projectile.pos),
             )
 
         self.board[row][col] = Bubble(projectile.color)
-        return (row, col)
+        return Cell(row, col)
 
     def find_cluster(self, row: int, col: int) -> list[tuple[int, int]]:
         start = self.board[row][col]
@@ -118,15 +116,10 @@ class Grid:
                     attached.add((nr, nc))
                     queue.append((nr, nc))
 
-        return [
-            (r, c)
-            for r in range(ROWS)
-            for c in range(COLS)
-            if filled(r, c) and (r, c) not in attached
-        ]
+        return [cell for cell, _ in self.bubbles() if cell not in ignore and cell not in attached]
 
     def colors_present(self) -> list[tuple[int, int, int]]:
-        return list({b.color for line in self.board for b in line if b is not None})
+        return list({b.color for _, b in self.bubbles()})
 
     def add_row(self) -> None:
         colors = self.colors_present() or COLORS
@@ -136,16 +129,33 @@ class Grid:
         self.board.insert(0, [Bubble(get_random_color(colors)) for _ in range(COLS)])
 
     def draw(self, surface: pygame.Surface) -> None:
-        for r, line in enumerate(self.board):
-            for c, b in enumerate(line):
-                if b is not None:
-                    b.draw(surface, self.grid_to_pixel(r, c))
+        for cell, bubble in self.bubbles():
+            bubble.draw(surface, self.grid_to_pixel(cell.row, cell.col))
 
     def is_empty(self) -> bool:
-        return all(b is None for line in self.board for b in line)
+        return next(self.bubbles(), None) is None
 
     def reached_bottom(self) -> bool:
         return any(b is not None for b in self.board[-1])
+
+    def bubble_at(self, cell: Cell) -> Bubble | None:
+        return self.board[cell.row][cell.col]
+
+    def cells(self) -> Iterator[Cell]:
+        for r in range(ROWS):
+            for c in range(COLS):
+                yield Cell(r, c)
+
+    def bubbles(self) -> Iterator[tuple[Cell, Bubble]]:
+        for cell in self.cells():
+            b = self.bubble_at(cell)
+            if b is not None:
+                yield (cell, b)
+
+    def empty_cells(self) -> Iterator[Cell]:
+        for cell in self.cells():
+            if self.bubble_at(cell) is None:
+                yield cell
 
 
 def get_random_color(colors: list[tuple[int, int, int]]) -> tuple[int, int, int]:
@@ -158,8 +168,8 @@ def create_test_grid() -> Grid:
         board.append([None] * COLS)
 
     grid = Grid(board, True)
-    for row in range(START_ROWS):
-        for col in range(COLS):
-            b = Bubble(get_random_color(COLORS))
-            grid.board[row][col] = b
+    for cell in grid.cells():
+        if cell.row < START_ROWS:
+            grid.board[cell.row][cell.col] = Bubble(get_random_color(COLORS))
+
     return grid
