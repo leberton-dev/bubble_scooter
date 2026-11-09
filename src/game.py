@@ -1,9 +1,7 @@
 from collections import deque
-from math import pi
 import pygame
 
 from src.settings import (
-    BUBBLE_RADIUS,
     COLORS,
     COLS,
     FPS,
@@ -16,11 +14,9 @@ from src.settings import (
     ROWS,
     ROWS_PER_ADD,
     START_ROWS,
-    WIDTH,
-    HEIGHT
 )
 from src.state import GameState
-from src.grid import Cell, Grid, get_random_color
+from src.grid import Cell, Grid
 from src.hud import HUD
 from src.projectile import Projectile
 from src.shooter import Shooter
@@ -42,13 +38,7 @@ class Game:
 
     def reset(self) -> None:
         self.grid: Grid = Grid.random(START_ROWS, ROWS, COLS, COLORS)
-        colors = self.grid.colors_present()
-        self.shooter: Shooter = Shooter(
-            get_random_color(colors),
-            get_random_color(colors),
-            pygame.Vector2(WIDTH / 2, HEIGHT - 100),
-            pi / 2,
-        )
+        self.shooter: Shooter = Shooter.spawn(self.grid.colors_present())
         self.projectile: Projectile | None = None
         self.miss_allowance: int = MISSES_PER_ROW
         self.misses_left: int = self.miss_allowance
@@ -154,16 +144,5 @@ class Game:
         self.shooter.draw(self.screen)
         if self.projectile is not None:
             self.projectile.draw(self.screen)
-
-        lose_y = self.grid.grid_to_pixel(ROWS -1, 0).y
-        _ = pygame.draw.line(self.screen, (200, 50, 50), (0, lose_y), (WIDTH, lose_y), 2)
-
-        for i in range(self.misses_left):
-            pos = (30 + i * 25, self.shooter.pos.y)
-            _ = pygame.draw.circle(
-                self.screen, (150, 150, 150), pos, BUBBLE_RADIUS // 2
-            )
-
-        _ = pygame.draw.circle(self.screen, self.shooter.next_color, (WIDTH - BUBBLE_RADIUS - 10, self.shooter.pos.y), BUBBLE_RADIUS)
-        self.hud.draw(self.screen, self.score, self.state)
+        self.hud.draw(self.screen, self.score, self.state, self.grid.lose_y, self.misses_left)
         pygame.display.flip()

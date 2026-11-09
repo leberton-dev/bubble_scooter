@@ -20,3 +20,5 @@ POP_DELAY: float = 0.1
 MIN_CLUSTER_SIZE: int = 3
 POINTS_PER_POP: int = 10
 POINTS_PER_DROP: int = 20
+
+SHOOTER_Y: int = HEIGHT - 100

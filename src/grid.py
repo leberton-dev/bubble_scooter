@@ -35,6 +35,11 @@ class Grid:
                 grid.place_cell(cell, get_random_color(colors))
         return grid
 
+    @property
+    def lose_y(self) -> float:
+        return self.grid_to_pixel(self.rows - 1, 0).y
+
+
     def is_shifted(self, row: int) -> bool:
         return (row % 2 == 1) != self.first_row_shifted
 
