@@ -1,7 +1,8 @@
+from collections import deque
 from math import pi
 import pygame
 
-from src.grid import Grid, create_test_grid, get_random_color
+from src.grid import Cell, Grid, create_test_grid, get_random_color
 from src.hud import HUD
 from src.projectile import Projectile
 from src.settings import BUBBLE_RADIUS, FPS, BG_COLOR, MISSES_PER_ROW, POP_DELAY, ROWS, ROWS_PER_ADD, WIDTH, HEIGHT
@@ -32,7 +33,7 @@ class Game:
         self.misses_left: int = self.max_misses
         self.score: int = 0
         self.state: str = "playing"
-        self.pop_queue: list[tuple[int, int]] = []
+        self.pop_queue: deque[Cell] = deque()
         self.pop_timer: float = 0
 
     def run(self) -> None:
@@ -73,29 +74,28 @@ class Game:
         if not (self.projectile.hit_ceiling() or self.grid.collides(self.projectile)):
             return
 
-        row, col = self.grid.snap(self.projectile)
+        cell = self.grid.nearest_free_cell(self.projectile.pos)
+        self.grid.place_cell(cell, self.projectile.color)
         self.projectile = None
-        self.resolve_shot(row, col)
+        self.resolve_shot(cell)
 
     def update_pops(self, dt: float) -> None:
         self.pop_timer -= dt
         while self.pop_timer <= 0 and self.pop_queue:
-            r, c = self.pop_queue.pop(0)
-            b = self.grid.board[r][c]
-            if b is not None:
-                self.grid.board[r][c] = None
+            cell = self.pop_queue.popleft()
+            if self.grid.remove_cell(cell) is not None:
                 self.sounds.play("pop")
             self.pop_timer += POP_DELAY
 
         if not self.pop_queue:
             self.end_turn()
 
-    def resolve_shot(self, row: int, col: int) -> None:
-        cluster = self.grid.find_cluster(row, col)
+    def resolve_shot(self, cell: Cell) -> None:
+        cluster = self.grid.find_cluster(cell)
         if len(cluster) >= 3:
             floating = self.grid.find_floating(set(cluster))
             self.score += len(cluster) * 10 + len(floating) * 20
-            self.pop_queue = cluster + floating
+            self.pop_queue = deque(cluster + floating)
             self.pop_timer = 0
             return
 

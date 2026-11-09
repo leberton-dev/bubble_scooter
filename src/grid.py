@@ -63,17 +63,26 @@ class Grid:
                 return True
         return False
 
-    def snap(self, projectile: Projectile) -> Cell:
-        row, col = self.pixel_to_grid(projectile.pos.x, projectile.pos.y)
+    def place_cell(self, cell: Cell, color: tuple[int, int, int]) -> None:
+        self.board[cell.row][cell.col] = Bubble(color)
 
-        if self.board[row][col] is not None:
-            row, col = min(
-                self.empty_cells(),
-                key=lambda cell: self.grid_to_pixel(cell.row, cell.col).distance_to(projectile.pos),
-            )
+    def remove_cell(self, cell: Cell) -> Bubble | None:
+        b = self.bubble_at(cell)
+        self.board[cell.row][cell.col] = None
+        return b
 
-        self.board[row][col] = Bubble(projectile.color)
-        return Cell(row, col)
+    def nearest_free_cell(self, pos: pygame.Vector2) -> Cell:
+        def distance_to_pos(cell: Cell) -> float:
+            return self.grid_to_pixel(cell.row, cell.col).distance_to(pos)
+
+        target = Cell(*self.pixel_to_grid(pos.x, pos.y))
+        if self.bubble_at(target) is None:
+            return target
+
+        neighbours = [cell for cell in self.get_neighbors(target.row, target.col) if self.bubble_at(cell) is None]
+        if neighbours:
+            return min(neighbours, key=distance_to_pos)
+        return min(self.empty_cells(), key=distance_to_pos)
 
     def _flood_fill(self, start: list[Cell], condition: Callable[[Cell], bool]) -> list[Cell]:
         visited = set(start)
@@ -88,8 +97,8 @@ class Grid:
                     queue.append(c)
         return visited_ordered
 
-    def find_cluster(self, row: int, col: int) -> list[Cell]:
-        start_bubble = self.board[row][col]
+    def find_cluster(self, cell: Cell) -> list[Cell]:
+        start_bubble = self.bubble_at(cell)
         if start_bubble is None:
             return []
 
@@ -97,7 +106,7 @@ class Grid:
             b = self.bubble_at(cell)
             return b is not None and b.color == start_bubble.color
 
-        return self._flood_fill([Cell(row, col)], bubble_is_start_color)
+        return self._flood_fill([cell], bubble_is_start_color)
 
     def find_floating(self, ignore: set[Cell]) -> list[Cell]:
         def filled(cell: Cell) -> bool:
@@ -111,10 +120,6 @@ class Grid:
 
         flood = set(self._flood_fill(start, filled))
         return [cell for cell, _ in self.bubbles() if cell not in ignore and cell not in flood]
-
-    def remove(self, cells: set[tuple[int, int]]) -> None:
-        for r, c in cells:
-            self.board[r][c] = None
 
     def colors_present(self) -> list[tuple[int, int, int]]:
         return list({b.color for _, b in self.bubbles()})
