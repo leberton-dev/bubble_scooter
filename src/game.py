@@ -1,11 +1,15 @@
 from collections import deque
+
 import pygame
 
+from src.grid import Cell, Grid
+from src.hud import HUD
+from src.projectile import Projectile
 from src.settings import (
+    BG_COLOR,
     COLORS,
     COLS,
     FPS,
-    BG_COLOR,
     MIN_CLUSTER_SIZE,
     MISSES_PER_ROW,
     POINTS_PER_DROP,
@@ -15,12 +19,9 @@ from src.settings import (
     ROWS_PER_ADD,
     START_ROWS,
 )
-from src.state import GameState
-from src.grid import Cell, Grid
-from src.hud import HUD
-from src.projectile import Projectile
 from src.shooter import Shooter
 from src.sound import Sounds
+from src.state import GameState
 
 
 class Game:
@@ -46,6 +47,7 @@ class Game:
         self.state: GameState = GameState.playing
         self.pop_queue: deque[Cell] = deque()
         self.pop_timer: float = 0
+        self.mouse_pos: tuple[int, int] = (0, 0)
 
     def run(self) -> None:
         dt = 0
@@ -58,6 +60,7 @@ class Game:
         pygame.quit()
 
     def handle_events(self) -> None:
+        self.mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -72,7 +75,7 @@ class Game:
         if self.state != GameState.playing:
             return
 
-        self.shooter.aim(pygame.mouse.get_pos())
+        self.shooter.aim(pygame.Vector2(*self.mouse_pos))
 
         if self.pop_queue:
             self.update_pops(dt)
@@ -139,10 +142,12 @@ class Game:
             self.shooter.refresh_colors(self.grid.colors_present())
 
     def draw(self) -> None:
-        _ = self.screen.fill(BG_COLOR)
+        self.screen.fill(BG_COLOR)
         self.grid.draw(self.screen)
         self.shooter.draw(self.screen)
         if self.projectile is not None:
             self.projectile.draw(self.screen)
-        self.hud.draw(self.screen, self.score, self.state, self.grid.lose_y, self.misses_left)
+        self.hud.draw(
+            self.screen, self.score, self.state, self.grid.lose_y, self.misses_left
+        )
         pygame.display.flip()

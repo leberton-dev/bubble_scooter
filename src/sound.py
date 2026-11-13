@@ -1,7 +1,9 @@
 from pathlib import Path
+
 import pygame
 
 SOUND_DIR = Path(__file__).parent.parent / "assets" / "sounds"
+
 
 class Sounds:
     def __init__(self) -> None:
@@ -17,5 +19,4 @@ class Sounds:
 
     def play(self, name: str) -> None:
         if name in self.sounds:
-            _ = self.sounds[name].play()
-
+            self.sounds[name].play()

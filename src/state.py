@@ -1,4 +1,5 @@
-from enum import auto, Enum
+from enum import Enum, auto
+
 
 class GameState(Enum):
     playing = auto()

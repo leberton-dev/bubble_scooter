@@ -2,14 +2,14 @@ from dataclasses import dataclass
 
 import pygame
 
-from src.settings import BUBBLE_RADIUS, WIDTH
+from src.settings import BUBBLE_RADIUS, WIDTH, Color
 
 
 @dataclass
 class Projectile:
     pos: pygame.Vector2
     velocity: pygame.Vector2
-    color: tuple[int, int, int]
+    color: Color
 
     def update(self, dt: float) -> None:
         self.pos += self.velocity * dt
@@ -26,4 +26,4 @@ class Projectile:
         return self.pos.y - BUBBLE_RADIUS <= 0
 
     def draw(self, surface: pygame.Surface) -> None:
-        _ = pygame.draw.circle(surface, self.color, self.pos, BUBBLE_RADIUS)
+        pygame.draw.circle(surface, self.color, self.pos, BUBBLE_RADIUS)

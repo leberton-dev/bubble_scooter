@@ -1,3 +1,5 @@
+type Color = tuple[int, int, int]
+
 WIDTH: int = 640
 HEIGHT: int = 800
 FPS: int = 60
@@ -6,9 +8,15 @@ BUBBLE_RADIUS: int = 18
 ROWS: int = 18
 COLS: int = (WIDTH - BUBBLE_RADIUS) // (2 * BUBBLE_RADIUS)
 START_ROWS: int = 9
-COLORS: list[tuple[int, int, int]] = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255)]
+COLORS: list[Color] = [
+    (255, 0, 0),
+    (0, 255, 0),
+    (0, 0, 255),
+    (255, 255, 0),
+    (0, 255, 255),
+]
 
-BG_COLOR: tuple[int, int, int] = (20, 20, 30)
+BG_COLOR: Color = (20, 20, 30)
 
 PROJECTILE_SPEED: int = 800
 
