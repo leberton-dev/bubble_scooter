@@ -1,12 +1,11 @@
 import pygame
 
-from src.game import Game
-from src.settings import HEIGHT, WIDTH
+from src.app import App
 
 
 def main():
     pygame.init()
-    Game(pygame.display.set_mode((WIDTH, HEIGHT)), pygame.time.Clock()).run()
+    App().run()
 
 
 if __name__ == "__main__":

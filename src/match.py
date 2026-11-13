@@ -9,7 +9,6 @@ from src.settings import (
     BG_COLOR,
     COLORS,
     COLS,
-    FPS,
     MIN_CLUSTER_SIZE,
     MISSES_PER_ROW,
     POINTS_PER_DROP,
@@ -24,20 +23,10 @@ from src.sound import Sounds
 from src.state import GameState
 
 
-class Game:
-    def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock) -> None:
-        self.screen: pygame.Surface = screen
-        self.clock: pygame.time.Clock = clock
-        self.running: bool = True
+class Match:
+    def __init__(self, sounds: Sounds) -> None:
+        self.sounds: Sounds = sounds
         self.hud: HUD = HUD()
-        self.sounds: Sounds = Sounds()
-        self.reset()
-
-    @property
-    def can_shoot(self) -> bool:
-        return self.projectile is None and not self.pop_queue
-
-    def reset(self) -> None:
         self.grid: Grid = Grid.random(START_ROWS, ROWS, COLS, COLORS)
         self.shooter: Shooter = Shooter.spawn(self.grid.colors_present())
         self.projectile: Projectile | None = None
@@ -49,29 +38,21 @@ class Game:
         self.pop_timer: float = 0
         self.mouse_pos: tuple[int, int] = (0, 0)
 
-    def run(self) -> None:
-        dt = 0
-        while self.running:
-            self.handle_events()
-            self.update(dt)
-            self.draw()
-            dt = self.clock.tick(FPS) / 1000
+    @property
+    def can_shoot(self) -> bool:
+        return self.projectile is None and not self.pop_queue
 
-        pygame.quit()
+    @property
+    def is_over(self) -> bool:
+        return self.state != GameState.playing
 
-    def handle_events(self) -> None:
-        self.mouse_pos = pygame.mouse.get_pos()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.state != GameState.playing:
-                    self.reset()
-                elif self.can_shoot:
-                    self.projectile = self.shooter.shoot(self.grid.colors_present())
-                    self.sounds.play("shoot")
+    def handle_event(self, event: pygame.event.Event) -> None:
+        if event.type == pygame.MOUSEBUTTONDOWN and self.can_shoot:
+            self.projectile = self.shooter.shoot(self.grid.colors_present())
+            self.sounds.play("shoot")
 
     def update(self, dt: float) -> None:
+        self.mouse_pos = pygame.mouse.get_pos()
         if self.state != GameState.playing:
             return
 
@@ -141,13 +122,12 @@ class Game:
         else:
             self.shooter.refresh_colors(self.grid.colors_present())
 
-    def draw(self) -> None:
-        self.screen.fill(BG_COLOR)
-        self.grid.draw(self.screen)
-        self.shooter.draw(self.screen)
+    def draw(self, surface: pygame.Surface) -> None:
+        surface.fill(BG_COLOR)
+        self.grid.draw(surface)
+        self.shooter.draw(surface)
         if self.projectile is not None:
-            self.projectile.draw(self.screen)
+            self.projectile.draw(surface)
         self.hud.draw(
-            self.screen, self.score, self.state, self.grid.lose_y, self.misses_left
+            surface, self.score, self.state, self.grid.lose_y, self.misses_left
         )
-        pygame.display.flip()
