@@ -5,6 +5,7 @@ import pygame
 from src.grid import Cell, Grid
 from src.hud import HUD
 from src.projectile import Projectile
+from src.scene import Scene
 from src.settings import (
     BG_COLOR,
     COLORS,
@@ -23,8 +24,9 @@ from src.sound import Sounds
 from src.state import GameState
 
 
-class Match:
+class PlayScene:
     def __init__(self, sounds: Sounds) -> None:
+        self.next_scene: Scene | None = None
         self.sounds: Sounds = sounds
         self.hud: HUD = HUD()
         self.grid: Grid = Grid.random(START_ROWS, ROWS, COLS, COLORS)
@@ -47,7 +49,11 @@ class Match:
         return self.state != GameState.playing
 
     def handle_event(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.MOUSEBUTTONDOWN and self.can_shoot:
+        if event.type != pygame.MOUSEBUTTONDOWN:
+            return
+        if self.is_over:
+            self.next_scene = PlayScene(self.sounds)
+        if self.can_shoot:
             self.projectile = self.shooter.shoot(self.grid.colors_present())
             self.sounds.play("shoot")
 

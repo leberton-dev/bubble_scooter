@@ -1,6 +1,7 @@
 import pygame
 
-from src.match import Match
+from src.scene import Scene
+from src.scenes.play import PlayScene
 from src.settings import FPS, HEIGHT, WIDTH
 from src.sound import Sounds
 
@@ -10,7 +11,7 @@ class App:
         self.screen: pygame.Surface = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.sounds: Sounds = Sounds()
-        self.match: Match = Match(self.sounds)
+        self.scene: Scene = PlayScene(self.sounds)
         self.running: bool = True
 
     def run(self) -> None:
@@ -18,8 +19,10 @@ class App:
         while self.running:
             for event in pygame.event.get():
                 self._handle_event(event)
-            self.match.update(dt)
-            self.match.draw(self.screen)
+            self.scene.update(dt)
+            if self.scene.next_scene is not None:
+                self.scene = self.scene.next_scene
+            self.scene.draw(self.screen)
             pygame.display.flip()
             dt = self.clock.tick(FPS) / 1000
         pygame.quit()
@@ -28,7 +31,4 @@ class App:
         if event.type == pygame.QUIT:
             self.running = False
             return
-        if event.type == pygame.MOUSEBUTTONDOWN and self.match.is_over:
-            self.match = Match(self.sounds)
-            return
-        self.match.handle_event(event)
+        self.scene.handle_event(event)
