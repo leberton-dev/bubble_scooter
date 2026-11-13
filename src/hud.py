@@ -1,9 +1,7 @@
 import pygame
 
 from src.settings import BUBBLE_RADIUS, HEIGHT, SHOOTER_Y, WIDTH, Color
-
-FONT_SIZE: int = 36
-TEXT_COLOR: str = "white"
+from src.text_renderer import TextRenderer
 
 SCORE_MARGIN_X: int = 20
 SCORE_MARGIN_BOTTOM: int = 50
@@ -19,7 +17,7 @@ MISS_DOT_SPACING: int = 25
 
 class HUD:
     def __init__(self) -> None:
-        self.font: pygame.font.Font = pygame.font.Font(None, FONT_SIZE)
+        self.text_renderer: TextRenderer = TextRenderer()
 
     def draw(
         self,
@@ -43,6 +41,9 @@ class HUD:
             pygame.draw.circle(surface, MISS_DOT_COLOR, pos, BUBBLE_RADIUS // 2)
 
     def _draw_score(self, surface: pygame.Surface, score: int) -> None:
-        txt = self.font.render(f"Score : {score}", True, TEXT_COLOR)
-        pos = (WIDTH - txt.get_width() - SCORE_MARGIN_X, HEIGHT - SCORE_MARGIN_BOTTOM)
-        surface.blit(txt, pos)
+        self.text_renderer.draw_at(
+            surface,
+            f"Score : {score}",
+            (WIDTH - SCORE_MARGIN_X, HEIGHT - SCORE_MARGIN_BOTTOM),
+            anchor="topright",
+        )

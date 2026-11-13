@@ -2,12 +2,9 @@ from collections.abc import Callable
 
 import pygame
 
-from src.hud import FONT_SIZE, TEXT_COLOR
 from src.scene import Scene
-from src.settings import BG_COLOR, HEIGHT, WIDTH
-
-BIG_FONT_SIZE: int = 80
-SUBTITLE_OFFSET_Y: int = 60
+from src.settings import BG_COLOR
+from src.text_renderer import TextRenderer, TextSize
 
 
 class GameOverScene:
@@ -16,8 +13,7 @@ class GameOverScene:
         self.won: bool = won
         self.score: int = score
         self.new_game: Callable[[], Scene] = new_game
-        self.font: pygame.font.Font = pygame.font.Font(None, FONT_SIZE)
-        self.big_font: pygame.font.Font = pygame.font.Font(None, BIG_FONT_SIZE)
+        self.text_renderer: TextRenderer = TextRenderer()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type != pygame.MOUSEBUTTONDOWN:
@@ -29,15 +25,11 @@ class GameOverScene:
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(BG_COLOR)
-        msg = "Won!" if self.won else "Lost..."
-        title = self.big_font.render(msg, True, TEXT_COLOR)
-        sub = self.font.render("Click to play", True, TEXT_COLOR)
-        score = self.font.render(f"Score: {self.score}", True, TEXT_COLOR)
-        center = (WIDTH / 2, HEIGHT / 2)
-        surface.blit(title, title.get_rect(center=center))
-        surface.blit(
-            score, score.get_rect(center=(center[0], center[1] + SUBTITLE_OFFSET_Y))
+        msg = "You won!" if self.won else "You lost..."
+        self.text_renderer.draw_centered(surface, msg, TextSize.big)
+        self.text_renderer.draw_centered(
+            surface, f"Score: {self.score}", offset_y=TextRenderer.LINE_SPACING
         )
-        surface.blit(
-            sub, sub.get_rect(center=(center[0], center[1] + SUBTITLE_OFFSET_Y * 2))
+        self.text_renderer.draw_centered(
+            surface, "Click to play", offset_y=TextRenderer.LINE_SPACING * 2
         )
