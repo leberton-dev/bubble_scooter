@@ -1,5 +1,6 @@
 import pygame
 
+from src.save_file import SaveFile
 from src.scene import Scene
 from src.scenes.menu import MenuScene
 from src.scenes.play import PlayScene
@@ -12,7 +13,8 @@ class App:
         self.screen: pygame.Surface = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.sounds: Sounds = Sounds()
-        self.scene: Scene = MenuScene(lambda: PlayScene(self.sounds))
+        self.save_file: SaveFile = SaveFile(SaveFile.data_dir() / "save.json")
+        self.scene: Scene = MenuScene(lambda: PlayScene(self.sounds, self.save_file))
         self.running: bool = True
 
     def run(self) -> None:

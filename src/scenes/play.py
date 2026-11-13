@@ -5,6 +5,7 @@ import pygame
 from src.grid import Cell, Grid
 from src.hud import HUD
 from src.projectile import Projectile
+from src.save_file import SaveFile
 from src.scene import Scene
 from src.scenes.game_over import GameOverScene
 from src.settings import (
@@ -25,9 +26,10 @@ from src.sound import Sounds
 
 
 class PlayScene:
-    def __init__(self, sounds: Sounds) -> None:
+    def __init__(self, sounds: Sounds, save_file: SaveFile) -> None:
         self.next_scene: Scene | None = None
         self.sounds: Sounds = sounds
+        self.save_file: SaveFile = save_file
         self.hud: HUD = HUD()
         self.grid: Grid = Grid.random(START_ROWS, ROWS, COLS, COLORS)
         self.shooter: Shooter = Shooter.spawn(self.grid.colors_present())
@@ -109,7 +111,10 @@ class PlayScene:
             self._on_miss()
 
     def _game_over(self, won: bool) -> None:
-        self.next_scene = GameOverScene(won, self.score, lambda: PlayScene(self.sounds))
+        best = self.save_file.load()
+        if self.score > best:
+            self.save_file.save(self.score)
+        self.next_scene = GameOverScene(won, self.score, lambda: PlayScene(self.sounds, self.save_file))
 
     def end_turn(self) -> None:
         if self.grid.is_empty():
