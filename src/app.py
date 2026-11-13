@@ -1,6 +1,7 @@
 import pygame
 
 from src.scene import Scene
+from src.scenes.menu import MenuScene
 from src.scenes.play import PlayScene
 from src.settings import FPS, HEIGHT, WIDTH
 from src.sound import Sounds
@@ -11,7 +12,7 @@ class App:
         self.screen: pygame.Surface = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.sounds: Sounds = Sounds()
-        self.scene: Scene = PlayScene(self.sounds)
+        self.scene: Scene = MenuScene(lambda: PlayScene(self.sounds))
         self.running: bool = True
 
     def run(self) -> None:
