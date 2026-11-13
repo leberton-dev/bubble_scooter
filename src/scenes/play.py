@@ -6,6 +6,7 @@ from src.grid import Cell, Grid
 from src.hud import HUD
 from src.projectile import Projectile
 from src.scene import Scene
+from src.scenes.game_over import GameOverScene
 from src.settings import (
     BG_COLOR,
     COLORS,
@@ -21,7 +22,6 @@ from src.settings import (
 )
 from src.shooter import Shooter
 from src.sound import Sounds
-from src.state import GameState
 
 
 class PlayScene:
@@ -35,7 +35,6 @@ class PlayScene:
         self.miss_allowance: int = MISSES_PER_ROW
         self.misses_left: int = self.miss_allowance
         self.score: int = 0
-        self.state: GameState = GameState.playing
         self.pop_queue: deque[Cell] = deque()
         self.pop_timer: float = 0
         self.mouse_pos: tuple[int, int] = (0, 0)
@@ -44,24 +43,15 @@ class PlayScene:
     def can_shoot(self) -> bool:
         return self.projectile is None and not self.pop_queue
 
-    @property
-    def is_over(self) -> bool:
-        return self.state != GameState.playing
-
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type != pygame.MOUSEBUTTONDOWN:
             return
-        if self.is_over:
-            self.next_scene = PlayScene(self.sounds)
         if self.can_shoot:
             self.projectile = self.shooter.shoot(self.grid.colors_present())
             self.sounds.play("shoot")
 
     def update(self, dt: float) -> None:
         self.mouse_pos = pygame.mouse.get_pos()
-        if self.state != GameState.playing:
-            return
-
         self.shooter.aim(pygame.Vector2(*self.mouse_pos))
 
         if self.pop_queue:
@@ -118,12 +108,15 @@ class PlayScene:
         else:
             self._on_miss()
 
+    def _game_over(self, won: bool) -> None:
+        self.next_scene = GameOverScene(won, self.score, lambda: PlayScene(self.sounds))
+
     def end_turn(self) -> None:
         if self.grid.is_empty():
-            self.state = GameState.won
+            self._game_over(True)
             self.sounds.play("win")
         elif self.grid.reached_bottom():
-            self.state = GameState.lost
+            self._game_over(False)
             self.sounds.play("lose")
         else:
             self.shooter.refresh_colors(self.grid.colors_present())
@@ -134,6 +127,4 @@ class PlayScene:
         self.shooter.draw(surface)
         if self.projectile is not None:
             self.projectile.draw(surface)
-        self.hud.draw(
-            surface, self.score, self.state, self.grid.lose_y, self.misses_left
-        )
+        self.hud.draw(surface, self.score, self.grid.lose_y, self.misses_left)
