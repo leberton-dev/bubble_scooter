@@ -8,10 +8,13 @@ from src.text_renderer import TextRenderer, TextSize
 
 
 class GameOverScene:
-    def __init__(self, won: bool, score: int, new_game: Callable[[], Scene]) -> None:
+    def __init__(
+        self, won: bool, score: int, is_new_best: bool, new_game: Callable[[], Scene]
+    ) -> None:
         self.next_scene: Scene | None = None
         self.won: bool = won
         self.score: int = score
+        self.is_new_best: bool = is_new_best
         self.new_game: Callable[[], Scene] = new_game
         self.text_renderer: TextRenderer = TextRenderer()
 
@@ -27,8 +30,11 @@ class GameOverScene:
         surface.fill(BG_COLOR)
         msg = "You won!" if self.won else "You lost..."
         self.text_renderer.draw_centered(surface, msg, TextSize.big)
+        score = f"Score: {self.score}"
+        if self.is_new_best:
+            score = f"New best score: {self.score}"
         self.text_renderer.draw_centered(
-            surface, f"Score: {self.score}", offset_y=TextRenderer.LINE_SPACING
+            surface, score, offset_y=TextRenderer.LINE_SPACING
         )
         self.text_renderer.draw_centered(
             surface, "Click to play", offset_y=TextRenderer.LINE_SPACING * 2

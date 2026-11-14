@@ -112,9 +112,12 @@ class PlayScene:
 
     def _game_over(self, won: bool) -> None:
         best = self.save_file.load()
-        if self.score > best:
+        is_new_best = self.score > best
+        if is_new_best:
             self.save_file.save(self.score)
-        self.next_scene = GameOverScene(won, self.score, lambda: PlayScene(self.sounds, self.save_file))
+        self.next_scene = GameOverScene(
+            won, self.score, is_new_best, lambda: PlayScene(self.sounds, self.save_file)
+        )
 
     def end_turn(self) -> None:
         if self.grid.is_empty():

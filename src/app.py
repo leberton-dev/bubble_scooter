@@ -14,7 +14,9 @@ class App:
         self.clock: pygame.time.Clock = pygame.time.Clock()
         self.sounds: Sounds = Sounds()
         self.save_file: SaveFile = SaveFile(SaveFile.data_dir() / "save.json")
-        self.scene: Scene = MenuScene(lambda: PlayScene(self.sounds, self.save_file))
+        self.scene: Scene = MenuScene(
+            lambda: PlayScene(self.sounds, self.save_file), self.save_file
+        )
         self.running: bool = True
 
     def run(self) -> None:
